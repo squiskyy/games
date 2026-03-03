@@ -1,1 +1,222 @@
-Coming Soon
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Side Scroller</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #cccccc;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        #game {
+            background-color: #2a2a2a;
+            border: 2px solid #666;
+            padding: 10px;
+            white-space: pre;
+            line-height: 1.2;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 20px;
+            color: #999;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="game"></div>
+    <div id="instructions">Press SPACE or ↑ to jump | Press ↓ to fast fall</div>
+    
+    <script>
+        const game = document.getElementById('game');
+        const scoreDisplay = document.getElementById('score');
+        
+        const width = 60;
+        const height = 20;
+        let score = 0;
+        let gameFrame = 0;
+        
+        // Player
+        let player = {
+            x: 10,
+            y: height - 3,
+            vy: 0,
+            jumping: false,
+            width: 3,
+            height: 3
+        };
+        
+        // Physics
+        const gravity = 0.5;
+        const jumpForce = -8;
+        const groundLevel = height - 2;
+        
+        // Obstacles
+        let obstacles = [];
+        
+        // ASCII art sprites
+        const playerSprite = [
+            " O ",
+            "/|\\",
+            "/ \\"
+        ];
+        
+        const obstacleSprite = [
+            "███",
+            "███"
+        ];
+        
+        // Ground pattern
+        function getGroundChar(x, frame) {
+            const patterns = ['─', '═', '┄', '┅'];
+            return patterns[Math.floor((x + frame * 0.5) % patterns.length)];
+        }
+        
+        function spawnObstacle() {
+            obstacles.push({
+                x: width,
+                y: groundLevel - 1,
+                passed: false
+            });
+        }
+        
+        function update() {
+            gameFrame++;
+            
+            // Player physics
+            player.vy += gravity;
+            player.y += player.vy;
+            
+            // Ground collision
+            if (player.y >= groundLevel - player.height) {
+                player.y = groundLevel - player.height;
+                player.vy = 0;
+                player.jumping = false;
+            }
+            
+            // Spawn obstacles
+            if (gameFrame % 90 === 0) {
+                spawnObstacle();
+            }
+            
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= 1;
+                
+                // Score when passed
+                if (!obstacles[i].passed && obstacles[i].x + 3 < player.x) {
+                    obstacles[i].passed = true;
+                    score++;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                }
+                
+                // Remove off-screen
+                if (obstacles[i].x < -3) {
+                    obstacles.splice(i, 1);
+                }
+                
+                // Collision detection
+                if (
+                    player.x < obstacles[i].x + 3 &&
+                    player.x + player.width > obstacles[i].x &&
+                    player.y < obstacles[i].y + 2 &&
+                    player.y + player.height > obstacles[i].y
+                ) {
+                    // Game over - reset
+                    score = 0;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                    obstacles = [];
+                    player.y = groundLevel - player.height;
+                    player.vy = 0;
+                }
+            }
+            
+            render();
+            requestAnimationFrame(update);
+        }
+        
+        function render() {
+            let frame = '';
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let char = ' ';
+                    
+                    // Check if player is here
+                    for (let py = 0; py < player.height; py++) {
+                        for (let px = 0; px < player.width; px++) {
+                            if (x === player.x + px && y === player.y + py) {
+                                char = playerSprite[py][px] || ' ';
+                            }
+                        }
+                    }
+                    
+                    // Check if obstacle is here
+                    for (let obs of obstacles) {
+                        for (let oy = 0; oy < 2; oy++) {
+                            for (let ox = 0; ox < 3; ox++) {
+                                if (x === obs.x + ox && y === obs.y + oy) {
+                                    char = obstacleSprite[oy][ox] || '█';
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Ground
+                    if (y === groundLevel && char === ' ') {
+                        char = getGroundChar(x, gameFrame);
+                    }
+                    
+                    frame += char;
+                }
+                frame += '\n';
+            }
+            
+            game.textContent = frame;
+        }
+        
+        // Controls
+        document.addEventListener('keydown', (e) => {
+            if ((e.code === 'Space' || e.code === 'ArrowUp') && !player.jumping) {
+                player.vy = jumpForce;
+                player.jumping = true;
+            }
+            if (e.code === 'ArrowDown' && player.y < groundLevel - player.height) {
+                player.vy += 5;
+            }
+        });
+        
+        // Touch controls for mobile
+        document.addEventListener('touchstart', (e) => {
+            const touchY = e.touches[0].clientY;
+            const screenHeight = window.innerHeight;
+            
+            if (touchY < screenHeight / 2 && !player.jumping) {
+                player.vy = jumpForce;
+                player.jumping = true;
+            } else if (touchY >= screenHeight / 2 && player.y < groundLevel - player.height) {
+                player.vy += 5;
+            }
+        });
+        
+        // Start game
+        update();
+    </script>
+</body>
+</html>
