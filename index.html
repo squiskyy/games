@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASCII Runner</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0a0a0a;
             display: flex;
@@ -19,30 +15,28 @@
             font-family: 'Courier New', monospace;
             overflow: hidden;
         }
-        #container {
-            position: relative;
-        }
+        #container { position: relative; }
         #game {
             background: #111;
             border: 3px solid #444;
-            padding: 5px;
-            white-space: pre;
-            line-height: 1.1;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 18px;
             font-weight: bold;
+            line-height: 1;
+            white-space: pre;
             color: #aaa;
             box-shadow: 0 0 30px rgba(100, 100, 100, 0.3);
         }
         #ui {
             position: absolute;
-            top: -40px;
-            left: 0;
-            right: 0;
+            top: -35px;
+            left: 10px;
+            right: 10px;
             display: flex;
             justify-content: space-between;
-            padding: 0 10px;
             color: #888;
-            font-size: 18px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
         }
         #message {
             position: absolute;
@@ -51,27 +45,23 @@
             transform: translate(-50%, -50%);
             text-align: center;
             color: #fff;
-            font-size: 20px;
+            font-size: 18px;
             text-shadow: 0 0 10px #fff;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.3s;
+            width: 100%;
         }
-        #message.show {
-            opacity: 1;
-        }
+        #message.show { opacity: 1; }
         #controls {
             position: absolute;
-            bottom: -35px;
+            bottom: -30px;
             left: 0;
             right: 0;
             text-align: center;
             color: #555;
             font-size: 12px;
         }
-        .bright { color: #fff !important; }
-        .dim { color: #666 !important; }
-        .ground { color: #777 !important; }
     </style>
 </head>
 <body>
@@ -80,7 +70,7 @@
             <span id="score">SCORE: 0</span>
             <span id="hiscore">HI: 0</span>
         </div>
-        <div id="game"></div>
+        <pre id="game"></pre>
         <div id="message">PRESS SPACE TO START</div>
         <div id="controls">SPACE/↑ Jump  ↓ Fast Fall  P Pause</div>
     </div>
@@ -91,8 +81,8 @@
         const hiscoreEl = document.getElementById('hiscore');
         const messageEl = document.getElementById('message');
         
-        const W = 70;
-        const H = 22;
+        const W = 60;
+        const H = 20;
         const GROUND = H - 3;
         
         let game = {
@@ -107,7 +97,7 @@
         
         let player = {
             x: 8,
-            y: GROUND - 3,
+            y: GROUND - 2,
             vy: 0,
             onGround: true,
             frame: 0,
@@ -118,31 +108,24 @@
         let particles = [];
         let clouds = [];
         
-        // Initialize clouds
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 4; i++) {
             clouds.push({
                 x: Math.random() * W,
-                y: Math.random() * (H / 2),
-                w: 3 + Math.floor(Math.random() * 4),
+                y: Math.floor(Math.random() * (H / 2)),
+                w: 4 + Math.floor(Math.random() * 4),
                 s: 0.02 + Math.random() * 0.03
             });
         }
         
-        const GRAVITY = 0.4;
-        const JUMP = -9;
-        const FAST_FALL = 3;
-        
-        // Animated player frames
-        const playerFrames = [
-            ["  O  ", "  O  ", "  O  ", " /|\\ ", " /|\\ ", " O   ", "  O  ", "   O "],
-            [" / \\ ", " /|  ", "  |\\ ", " / \\ ", " |\\  ", " / \\ ", "/ \\  ", "  / \\"]
-        ];
+        const GRAVITY = 0.5;
+        const JUMP = -10;
+        const FAST_FALL = 4;
         
         const obstacleTypes = [
             { h: 2, chars: ["▓▓▓", "▓▓▓"] },
             { h: 2, chars: ["▲▲▲", "▲▲▲"] },
             { h: 1, chars: ["▒▒▒▒▒"] },
-            { h: 3, chars: ["█", "█", "███"] }
+            { h: 3, chars: [" █ ", "███", "███"] }
         ];
         
         function spawnObstacle() {
@@ -158,11 +141,11 @@
         function spawnParticles(x, y, count, char = '*') {
             for (let i = 0; i < count; i++) {
                 particles.push({
-                    x: x,
-                    y: y,
+                    x: x + (Math.random() - 0.5) * 2,
+                    y: y + (Math.random() - 0.5),
                     vx: (Math.random() - 0.5) * 2,
                     vy: (Math.random() - 0.5) * 2 - 1,
-                    life: 20 + Math.random() * 10,
+                    life: 15 + Math.random() * 10,
                     char: char
                 });
             }
@@ -179,12 +162,11 @@
             game.speed = 1 + Math.floor(game.score / 500) * 0.2;
             if (game.shake > 0) game.shake--;
             
-            // Player physics
             player.vy += GRAVITY;
             player.y += player.vy;
             
-            if (player.y >= GROUND - 3) {
-                player.y = GROUND - 3;
+            if (player.y >= GROUND - 2) {
+                player.y = GROUND - 2;
                 player.vy = 0;
                 player.onGround = true;
             } else {
@@ -193,13 +175,11 @@
             
             player.frame++;
             
-            // Spawn obstacles
             const spawnRate = Math.max(40, 80 - Math.floor(game.score / 100) * 5);
             if (game.frame % Math.floor(spawnRate / game.speed) === 0) {
                 spawnObstacle();
             }
             
-            // Update obstacles
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.x -= game.speed;
@@ -210,31 +190,26 @@
                     scoreEl.textContent = `SCORE: ${game.score}`;
                 }
                 
-                if (obs.x < -5) {
-                    obstacles.splice(i, 1);
-                }
+                if (obs.x < -5) obstacles.splice(i, 1);
                 
-                // Collision
                 if (
-                    player.x + 3 > obs.x &&
-                    player.x < obs.x + obs.type.chars[0].length &&
-                    player.y + 3 > obs.y
+                    player.x + 2 > obs.x &&
+                    player.x < obs.x + 3 &&
+                    player.y + 2 > obs.y
                 ) {
                     die();
                 }
             }
             
-            // Update particles
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vy += 0.1;
+                p.vy += 0.15;
                 p.life--;
                 if (p.life <= 0) particles.splice(i, 1);
             }
             
-            // Update clouds
             clouds.forEach(c => {
                 c.x -= c.s;
                 if (c.x + c.w < 0) c.x = W;
@@ -246,8 +221,7 @@
         
         function die() {
             game.shake = 10;
-            spawnParticles(player.x + 2, player.y + 1, 20, '*');
-            spawnParticles(player.x + 2, player.y + 1, 10, '#');
+            spawnParticles(player.x + 1, player.y + 1, 15, '*');
             player.dead = true;
             game.running = false;
             
@@ -271,85 +245,109 @@
         }
         
         function render() {
-            let frame = '';
-            let shakeX = game.shake > 0 ? Math.floor((Math.random() - 0.5) * 4) : 0;
-            
+            let grid = [];
             for (let y = 0; y < H; y++) {
+                let row = [];
                 for (let x = 0; x < W; x++) {
-                    let char = ' ';
-                    let cls = '';
-                    
-                    // Clouds
-                    for (let c of clouds) {
-                        if (y === c.y && x >= c.x && x < c.x + c.w) {
-                            char = '≈';
-                            cls = 'dim';
-                        }
-                    }
-                    
-                    // Particles
-                    for (let p of particles) {
-                        if (Math.abs(x - p.x) < 0.5 && Math.abs(y - p.y) < 0.5) {
-                            char = p.char;
-                            cls = 'bright';
-                        }
-                    }
-                    
-                    // Player
-                    if (!player.dead && y >= player.y && y < player.y + 3) {
-                        let py = y - player.y;
-                        let px = x - player.x;
-                        let animFrame = player.onGround ? Math.floor(player.frame / 8) % 8 : 1;
-                        if (px >= 0 && px < 5) {
-                            let spriteChar = playerFrames[py][animFrame]?.[px];
-                            if (spriteChar) {
-                                char = spriteChar;
-                                cls = 'bright';
-                            }
-                        }
-                    }
-                    
-                    // Obstacles
-                    for (let obs of obstacles) {
-                        for (let oy = 0; oy < obs.type.h; oy++) {
-                            if (y === obs.y + oy) {
-                                for (let ox = 0; ox < obs.type.chars[oy].length; ox++) {
-                                    if (x === obs.x + ox) {
-                                        char = obs.type.chars[oy][ox];
-                                        cls = 'bright';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Ground
-                    if (y === GROUND && char === ' ') {
-                        const groundChars = '╌┄┅═─';
-                        char = groundChars[Math.floor((x + game.frame * 0.3) % groundChars.length)];
-                        cls = 'ground';
-                    }
-                    
-                    // Decorative ground detail
-                    if (y === GROUND + 1 && char === ' ' && Math.random() < 0.02) {
-                        char = '·';
-                        cls = 'dim';
-                    }
-                    
-                    if (cls) {
-                        frame += `<span class="${cls}">${char}</span>`;
-                    } else {
-                        frame += char;
-                    }
+                    row.push({ char: ' ', style: '' });
                 }
-                frame += '\n';
+                grid.push(row);
             }
             
-            canvas.innerHTML = frame;
+            // Clouds
+            clouds.forEach(c => {
+                if (c.y >= 0 && c.y < H) {
+                    for (let i = 0; i < c.w; i++) {
+                        let cx = Math.floor(c.x) + i;
+                        if (cx >= 0 && cx < W) {
+                            grid[c.y][cx] = { char: '≈', style: 'dim' };
+                        }
+                    }
+                }
+            });
+            
+            // Particles
+            particles.forEach(p => {
+                let px = Math.floor(p.x);
+                let py = Math.floor(p.y);
+                if (px >= 0 && px < W && py >= 0 && py < H) {
+                    grid[py][px] = { char: p.char, style: 'bright' };
+                }
+            });
+            
+            // Obstacles
+            obstacles.forEach(obs => {
+                for (let oy = 0; oy < obs.type.h; oy++) {
+                    let row = obs.type.chars[oy] || '';
+                    for (let ox = 0; ox < row.length; ox++) {
+                        let rx = Math.floor(obs.x) + ox;
+                        if (rx >= 0 && rx < W) {
+                            grid[obs.y + oy][rx] = { char: row[ox], style: 'bright' };
+                        }
+                    }
+                }
+            });
+            
+            // Player
+            if (!player.dead) {
+                const sprite = [
+                    "  O  ",
+                    " /|\\ ",
+                    " / \\ "
+                ];
+                const runSprite = [
+                    "  O  ",
+                    "  |  ",
+                    " / \\ "
+                ];
+                const jumpSprite = [
+                    "  O  ",
+                    " /|\\ ",
+                    "   \\ "
+                ];
+                
+                let useSprite = sprite;
+                if (!player.onGround) useSprite = jumpSprite;
+                else if (Math.floor(player.frame / 8) % 2 === 0) useSprite = runSprite;
+                
+                for (let sy = 0; sy < 3; sy++) {
+                    for (let sx = 0; sx < 5; sx++) {
+                        let px = Math.floor(player.x) + sx;
+                        let py = Math.floor(player.y) + sy;
+                        if (px >= 0 && px < W && py >= 0 && py < H) {
+                            let c = useSprite[sy][sx];
+                            if (c !== ' ') {
+                                grid[py][px] = { char: c, style: 'bright' };
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Ground
+            const groundChars = '╌┄┅═─';
+            for (let x = 0; x < W; x++) {
+                grid[GROUND][x] = { 
+                    char: groundChars[Math.floor((x + game.frame * 0.3) % groundChars.length)], 
+                    style: 'dim' 
+                };
+            }
+            
+            // Build output
+            let output = '';
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    let cell = grid[y][x];
+                    output += cell.char;
+                }
+                output += '\n';
+            }
+            
+            canvas.textContent = output;
         }
         
         function reset() {
-            player = { x: 8, y: GROUND - 3, vy: 0, onGround: true, frame: 0, dead: false };
+            player = { x: 8, y: GROUND - 2, vy: 0, onGround: true, frame: 0, dead: false };
             obstacles = [];
             particles = [];
             game.score = 0;
@@ -367,16 +365,14 @@
             game.paused = false;
         }
         
-        // Controls
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 e.preventDefault();
-                if (!game.running) {
-                    start();
-                } else if (player.onGround) {
+                if (!game.running) start();
+                else if (player.onGround) {
                     player.vy = JUMP;
                     player.onGround = false;
-                    spawnParticles(player.x + 2, player.y + 3, 5, '.');
+                    spawnParticles(player.x, player.y + 2, 3, '.');
                 }
             }
             if (e.code === 'ArrowDown' && !player.onGround) {
@@ -388,7 +384,6 @@
             }
         });
         
-        // Touch
         let touchStartY = 0;
         document.addEventListener('touchstart', (e) => {
             touchStartY = e.touches[0].clientY;
@@ -404,8 +399,8 @@
             }
         });
         
-        // Init
         hiscoreEl.textContent = `HI: ${game.hiScore}`;
+        showMessage("PRESS SPACE TO START");
         update();
     </script>
 </body>
