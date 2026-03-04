@@ -3,219 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASCII Side Scroller</title>
+    <title>ASCII Runner</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            background-color: #1a1a1a;
-            color: #cccccc;
-            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
             overflow: hidden;
         }
+        #container {
+            position: relative;
+        }
         #game {
-            background-color: #2a2a2a;
-            border: 2px solid #666;
-            padding: 10px;
+            background: #111;
+            border: 3px solid #444;
+            padding: 5px;
             white-space: pre;
-            line-height: 1.2;
+            line-height: 1.1;
+            font-size: 16px;
+            font-weight: bold;
+            color: #aaa;
+            box-shadow: 0 0 30px rgba(100, 100, 100, 0.3);
         }
-        #score {
+        #ui {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: -40px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            color: #888;
+            font-size: 18px;
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #fff;
             font-size: 20px;
-            color: #999;
+            text-shadow: 0 0 10px #fff;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
-        #instructions {
+        #message.show {
+            opacity: 1;
+        }
+        #controls {
             position: absolute;
-            bottom: 20px;
-            color: #666;
-            font-size: 14px;
+            bottom: -35px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #555;
+            font-size: 12px;
         }
+        .bright { color: #fff !important; }
+        .dim { color: #666 !important; }
+        .ground { color: #777 !important; }
     </style>
 </head>
 <body>
-    <div id="score">Score: 0</div>
-    <div id="game"></div>
-    <div id="instructions">Press SPACE or ↑ to jump | Press ↓ to fast fall</div>
+    <div id="container">
+        <div id="ui">
+            <span id="score">SCORE: 0</span>
+            <span id="hiscore">HI: 0</span>
+        </div>
+        <div id="game"></div>
+        <div id="message">PRESS SPACE TO START</div>
+        <div id="controls">SPACE/↑ Jump  ↓ Fast Fall  P Pause</div>
+    </div>
     
     <script>
-        const game = document.getElementById('game');
-        const scoreDisplay = document.getElementById('score');
+        const canvas = document.getElementById('game');
+        const scoreEl = document.getElementById('score');
+        const hiscoreEl = document.getElementById('hiscore');
+        const messageEl = document.getElementById('message');
         
-        const width = 60;
-        const height = 20;
-        let score = 0;
-        let gameFrame = 0;
+        const W = 70;
+        const H = 22;
+        const GROUND = H - 3;
         
-        // Player
-        let player = {
-            x: 10,
-            y: height - 3,
-            vy: 0,
-            jumping: false,
-            width: 3,
-            height: 3
+        let game = {
+            running: false,
+            paused: false,
+            score: 0,
+            hiScore: parseInt(localStorage.getItem('ascii_hi') || '0'),
+            speed: 1,
+            frame: 0,
+            shake: 0
         };
         
-        // Physics
-        const gravity = 0.5;
-        const jumpForce = -8;
-        const groundLevel = height - 2;
+        let player = {
+            x: 8,
+            y: GROUND - 3,
+            vy: 0,
+            onGround: true,
+            frame: 0,
+            dead: false
+        };
         
-        // Obstacles
         let obstacles = [];
+        let particles = [];
+        let clouds = [];
         
-        // ASCII art sprites
-        const playerSprite = [
-            " O ",
-            "/|\\",
-            "/ \\"
-        ];
-        
-        const obstacleSprite = [
-            "███",
-            "███"
-        ];
-        
-        // Ground pattern
-        function getGroundChar(x, frame) {
-            const patterns = ['─', '═', '┄', '┅'];
-            return patterns[Math.floor((x + frame * 0.5) % patterns.length)];
+        // Initialize clouds
+        for (let i = 0; i < 5; i++) {
+            clouds.push({
+                x: Math.random() * W,
+                y: Math.random() * (H / 2),
+                w: 3 + Math.floor(Math.random() * 4),
+                s: 0.02 + Math.random() * 0.03
+            });
         }
         
+        const GRAVITY = 0.4;
+        const JUMP = -9;
+        const FAST_FALL = 3;
+        
+        // Animated player frames
+        const playerFrames = [
+            ["  O  ", "  O  ", "  O  ", " /|\\ ", " /|\\ ", " O   ", "  O  ", "   O "],
+            [" / \\ ", " /|  ", "  |\\ ", " / \\ ", " |\\  ", " / \\ ", "/ \\  ", "  / \\"]
+        ];
+        
+        const obstacleTypes = [
+            { h: 2, chars: ["▓▓▓", "▓▓▓"] },
+            { h: 2, chars: ["▲▲▲", "▲▲▲"] },
+            { h: 1, chars: ["▒▒▒▒▒"] },
+            { h: 3, chars: ["█", "█", "███"] }
+        ];
+        
         function spawnObstacle() {
+            const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
             obstacles.push({
-                x: width,
-                y: groundLevel - 1,
+                x: W,
+                y: GROUND - type.h,
+                type: type,
                 passed: false
             });
         }
         
+        function spawnParticles(x, y, count, char = '*') {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2 - 1,
+                    life: 20 + Math.random() * 10,
+                    char: char
+                });
+            }
+        }
+        
         function update() {
-            gameFrame++;
-            
-            // Player physics
-            player.vy += gravity;
-            player.y += player.vy;
-            
-            // Ground collision
-            if (player.y >= groundLevel - player.height) {
-                player.y = groundLevel - player.height;
-                player.vy = 0;
-                player.jumping = false;
+            if (!game.running || game.paused) {
+                render();
+                requestAnimationFrame(update);
+                return;
             }
             
+            game.frame++;
+            game.speed = 1 + Math.floor(game.score / 500) * 0.2;
+            if (game.shake > 0) game.shake--;
+            
+            // Player physics
+            player.vy += GRAVITY;
+            player.y += player.vy;
+            
+            if (player.y >= GROUND - 3) {
+                player.y = GROUND - 3;
+                player.vy = 0;
+                player.onGround = true;
+            } else {
+                player.onGround = false;
+            }
+            
+            player.frame++;
+            
             // Spawn obstacles
-            if (gameFrame % 90 === 0) {
+            const spawnRate = Math.max(40, 80 - Math.floor(game.score / 100) * 5);
+            if (game.frame % Math.floor(spawnRate / game.speed) === 0) {
                 spawnObstacle();
             }
             
             // Update obstacles
             for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].x -= 1;
+                let obs = obstacles[i];
+                obs.x -= game.speed;
                 
-                // Score when passed
-                if (!obstacles[i].passed && obstacles[i].x + 3 < player.x) {
-                    obstacles[i].passed = true;
-                    score++;
-                    scoreDisplay.textContent = `Score: ${score}`;
+                if (!obs.passed && obs.x + 3 < player.x) {
+                    obs.passed = true;
+                    game.score += 100;
+                    scoreEl.textContent = `SCORE: ${game.score}`;
                 }
                 
-                // Remove off-screen
-                if (obstacles[i].x < -3) {
+                if (obs.x < -5) {
                     obstacles.splice(i, 1);
                 }
                 
-                // Collision detection
+                // Collision
                 if (
-                    player.x < obstacles[i].x + 3 &&
-                    player.x + player.width > obstacles[i].x &&
-                    player.y < obstacles[i].y + 2 &&
-                    player.y + player.height > obstacles[i].y
+                    player.x + 3 > obs.x &&
+                    player.x < obs.x + obs.type.chars[0].length &&
+                    player.y + 3 > obs.y
                 ) {
-                    // Game over - reset
-                    score = 0;
-                    scoreDisplay.textContent = `Score: ${score}`;
-                    obstacles = [];
-                    player.y = groundLevel - player.height;
-                    player.vy = 0;
+                    die();
                 }
             }
+            
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1;
+                p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+            
+            // Update clouds
+            clouds.forEach(c => {
+                c.x -= c.s;
+                if (c.x + c.w < 0) c.x = W;
+            });
             
             render();
             requestAnimationFrame(update);
         }
         
+        function die() {
+            game.shake = 10;
+            spawnParticles(player.x + 2, player.y + 1, 20, '*');
+            spawnParticles(player.x + 2, player.y + 1, 10, '#');
+            player.dead = true;
+            game.running = false;
+            
+            if (game.score > game.hiScore) {
+                game.hiScore = game.score;
+                localStorage.setItem('ascii_hi', game.hiScore);
+                hiscoreEl.textContent = `HI: ${game.hiScore}`;
+                showMessage("NEW HIGH SCORE!");
+            } else {
+                showMessage("GAME OVER - SPACE TO RESTART");
+            }
+        }
+        
+        function showMessage(text) {
+            messageEl.textContent = text;
+            messageEl.classList.add('show');
+        }
+        
+        function hideMessage() {
+            messageEl.classList.remove('show');
+        }
+        
         function render() {
             let frame = '';
+            let shakeX = game.shake > 0 ? Math.floor((Math.random() - 0.5) * 4) : 0;
             
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
                     let char = ' ';
+                    let cls = '';
                     
-                    // Check if player is here
-                    for (let py = 0; py < player.height; py++) {
-                        for (let px = 0; px < player.width; px++) {
-                            if (x === player.x + px && y === player.y + py) {
-                                char = playerSprite[py][px] || ' ';
+                    // Clouds
+                    for (let c of clouds) {
+                        if (y === c.y && x >= c.x && x < c.x + c.w) {
+                            char = '≈';
+                            cls = 'dim';
+                        }
+                    }
+                    
+                    // Particles
+                    for (let p of particles) {
+                        if (Math.abs(x - p.x) < 0.5 && Math.abs(y - p.y) < 0.5) {
+                            char = p.char;
+                            cls = 'bright';
+                        }
+                    }
+                    
+                    // Player
+                    if (!player.dead && y >= player.y && y < player.y + 3) {
+                        let py = y - player.y;
+                        let px = x - player.x;
+                        let animFrame = player.onGround ? Math.floor(player.frame / 8) % 8 : 1;
+                        if (px >= 0 && px < 5) {
+                            let spriteChar = playerFrames[py][animFrame]?.[px];
+                            if (spriteChar) {
+                                char = spriteChar;
+                                cls = 'bright';
                             }
                         }
                     }
                     
-                    // Check if obstacle is here
+                    // Obstacles
                     for (let obs of obstacles) {
-                        for (let oy = 0; oy < 2; oy++) {
-                            for (let ox = 0; ox < 3; ox++) {
-                                if (x === obs.x + ox && y === obs.y + oy) {
-                                    char = obstacleSprite[oy][ox] || '█';
+                        for (let oy = 0; oy < obs.type.h; oy++) {
+                            if (y === obs.y + oy) {
+                                for (let ox = 0; ox < obs.type.chars[oy].length; ox++) {
+                                    if (x === obs.x + ox) {
+                                        char = obs.type.chars[oy][ox];
+                                        cls = 'bright';
+                                    }
                                 }
                             }
                         }
                     }
                     
                     // Ground
-                    if (y === groundLevel && char === ' ') {
-                        char = getGroundChar(x, gameFrame);
+                    if (y === GROUND && char === ' ') {
+                        const groundChars = '╌┄┅═─';
+                        char = groundChars[Math.floor((x + game.frame * 0.3) % groundChars.length)];
+                        cls = 'ground';
                     }
                     
-                    frame += char;
+                    // Decorative ground detail
+                    if (y === GROUND + 1 && char === ' ' && Math.random() < 0.02) {
+                        char = '·';
+                        cls = 'dim';
+                    }
+                    
+                    if (cls) {
+                        frame += `<span class="${cls}">${char}</span>`;
+                    } else {
+                        frame += char;
+                    }
                 }
                 frame += '\n';
             }
             
-            game.textContent = frame;
+            canvas.innerHTML = frame;
+        }
+        
+        function reset() {
+            player = { x: 8, y: GROUND - 3, vy: 0, onGround: true, frame: 0, dead: false };
+            obstacles = [];
+            particles = [];
+            game.score = 0;
+            game.speed = 1;
+            game.frame = 0;
+            game.shake = 0;
+            scoreEl.textContent = 'SCORE: 0';
+            hiscoreEl.textContent = `HI: ${game.hiScore}`;
+            hideMessage();
+        }
+        
+        function start() {
+            reset();
+            game.running = true;
+            game.paused = false;
         }
         
         // Controls
         document.addEventListener('keydown', (e) => {
-            if ((e.code === 'Space' || e.code === 'ArrowUp') && !player.jumping) {
-                player.vy = jumpForce;
-                player.jumping = true;
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                if (!game.running) {
+                    start();
+                } else if (player.onGround) {
+                    player.vy = JUMP;
+                    player.onGround = false;
+                    spawnParticles(player.x + 2, player.y + 3, 5, '.');
+                }
             }
-            if (e.code === 'ArrowDown' && player.y < groundLevel - player.height) {
-                player.vy += 5;
+            if (e.code === 'ArrowDown' && !player.onGround) {
+                player.vy += FAST_FALL;
+            }
+            if (e.code === 'KeyP' && game.running) {
+                game.paused = !game.paused;
+                showMessage(game.paused ? "PAUSED" : "");
             }
         });
         
-        // Touch controls for mobile
+        // Touch
+        let touchStartY = 0;
         document.addEventListener('touchstart', (e) => {
-            const touchY = e.touches[0].clientY;
-            const screenHeight = window.innerHeight;
-            
-            if (touchY < screenHeight / 2 && !player.jumping) {
-                player.vy = jumpForce;
-                player.jumping = true;
-            } else if (touchY >= screenHeight / 2 && player.y < groundLevel - player.height) {
-                player.vy += 5;
+            touchStartY = e.touches[0].clientY;
+            if (!game.running) start();
+        });
+        document.addEventListener('touchend', (e) => {
+            const dy = touchStartY - e.changedTouches[0].clientY;
+            if (dy > 30 && player.onGround) {
+                player.vy = JUMP;
+                player.onGround = false;
+            } else if (dy < -30 && !player.onGround) {
+                player.vy += FAST_FALL;
             }
         });
         
-        // Start game
+        // Init
+        hiscoreEl.textContent = `HI: ${game.hiScore}`;
         update();
     </script>
 </body>
