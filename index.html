@@ -110,9 +110,9 @@
             clouds.push({ x: Math.random() * W, y: Math.floor(Math.random() * (H / 2)), w: 4 + Math.floor(Math.random() * 3), s: 0.02 + Math.random() * 0.02 });
         }
         
-        const GRAVITY = 0.5;
-        const JUMP = -9;
-        const FAST_FALL = 3;
+        const GRAVITY = 0.3;
+        const JUMP = -6;
+        const FAST_FALL = 2;
         
         const obstacleTypes = [
             { h: 2, chars: ["▓▓▓", "▓▓▓"] },
@@ -152,7 +152,7 @@
             }
             
             game.frame++;
-            game.speed = 1 + Math.floor(game.score / 500) * 0.15;
+            game.speed = 0.5 + Math.floor(game.score / 500) * 0.1;
             
             player.vy += GRAVITY;
             player.y += player.vy;
