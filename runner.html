@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games | starky.ink</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d0d0d;
+            color: #ccc;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 0.9rem;
+        }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 900px;
+            width: 100%;
+        }
+        .game-card {
+            background: #161616;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            text-decoration: none;
+            color: #aaa;
+            transition: all 0.2s;
+        }
+        .game-card:hover {
+            border-color: #666;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        .game-card h2 {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .game-card p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        .game-card .arrow {
+            float: right;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .game-card:hover .arrow {
+            opacity: 1;
+        }
+        .coming-soon {
+            background: #1a1a1a;
+            border: 2px dashed #333;
+            border-radius: 8px;
+            padding: 25px;
+            text-align: center;
+            opacity: 0.5;
+        }
+        .coming-soon h2 {
+            color: #555;
+            font-size: 1.2rem;
+        }
+        .footer {
+            margin-top: 60px;
+            color: #444;
+            font-size: 0.75rem;
+        }
+        .footer a {
+            color: #666;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>Games</h1>
+    <p class="subtitle">A collection of tiny web games</p>
+    
+    <div class="games-grid">
+        <a href="runner.html" class="game-card">
+            <h2>ASCII Runner <span class="arrow">→</span></h2>
+            <p>A simple side-scrolling runner. Jump over obstacles and see how far you can get. Controls: Space/Up to jump.</p>
+        </a>
+        
+        <a href="theme-1" class="game-card">
+            <h2>Theme: Matrix <span class="arrow">→</span></h2>
+            <p>Classic green-on-black terminal aesthetic. Digital rain and retro vibes.</p>
+        </a>
+        
+        <a href="theme-2" class="game-card">
+            <h2>Theme: Neon <span class="arrow">→</span></h2>
+            <p>Cyberpunk-inspired with bright neon pinks and blues against dark backgrounds.</p>
+        </a>
+        
+        <a href="theme-3" class="game-card">
+            <h2>Theme: Paper <span class="arrow">→</span></h2>
+            <p>Clean white and cream tones. Minimalist, peaceful, typewriter-style.</p>
+        </a>
+        
+        <div class="coming-soon">
+            <h2>More coming soon...</h2>
+        </div>
+    </div>
+    
+    <p class="footer">
+        <a href="https://starky.ink">← starky.ink</a>
+    </p>
+</body>
+</html>
