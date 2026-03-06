@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games | starky.ink</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d0d0d;
+            color: #ccc;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 0.9rem;
+        }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 900px;
+            width: 100%;
+        }
+        .game-card {
+            background: #161616;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            text-decoration: none;
+            color: #aaa;
+            transition: all 0.2s;
+        }
+        .game-card:hover {
+            border-color: #666;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        .game-card h2 {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .game-card p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        .game-card .arrow {
+            float: right;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .game-card:hover .arrow {
+            opacity: 1;
+        }
+        .themes-section {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .themes-section h3 {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .themes-grid {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .theme-btn {
+            background: #161616;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 15px 25px;
+            color: #aaa;
+            font-family: monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .theme-btn:hover {
+            border-color: #666;
+        }
+        .theme-btn.default { border-color: #666; }
+        .theme-btn.matrix { color: #00ff00; border-color: #004400; }
+        .theme-btn.neon { color: #ff66b2; border-color: #660044; }
+        .theme-btn.paper { color: #444; border-color: #ccc; }
+        
+        .footer {
+            margin-top: 60px;
+            color: #444;
+            font-size: 0.75rem;
+        }
+        .footer a {
+            color: #666;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>Games</h1>
+    <p class="subtitle">A collection of tiny web games</p>
+    
+    <div class="games-grid">
+        <a href="runner.html" class="game-card">
+            <h2>ASCII Runner <span class="arrow">→</span></h2>
+            <p>A simple side-scrolling runner. Jump over obstacles and see how far you can get.</p>
+        </a>
+        
+        <div class="game-card" style="opacity: 0.5; cursor: default;">
+            <h2>More Coming Soon...</h2>
+            <p>Check back later for new games.</p>
+        </div>
+    </div>
+    
+    <div class="themes-section">
+        <h3>Runner Themes</h3>
+        <div class="themes-grid">
+            <button class="theme-btn default" onclick="setTheme(0)">Default</button>
+            <button class="theme-btn matrix" onclick="setTheme(1)">Matrix</button>
+            <button class="theme-btn neon" onclick="setTheme(2)">Neon</button>
+            <button class="theme-btn paper" onclick="setTheme(3)">Paper</button>
+        </div>
+    </div>
+    
+    <p class="footer">
+        <a href="https://starky.ink">← starky.ink</a>
+    </p>
+    
+    <script>
+        function setTheme(index) {
+            const themes = ['default', 'matrix', 'neon', 'paper'];
+            localStorage.setItem('runner_theme', themes[index]);
+            window.location.href = 'runner.html';
+        }
+    </script>
+</body>
+</html>

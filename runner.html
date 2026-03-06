@@ -7,7 +7,6 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
-            background: #0a0a0a;
             width: 100%;
             height: 100%;
             display: flex;
@@ -15,6 +14,7 @@
             align-items: center;
             font-family: monospace;
             overflow: hidden;
+            transition: background 0.3s;
         }
         #container {
             position: relative;
@@ -29,43 +29,69 @@
             width: 100%;
             display: flex;
             justify-content: space-between;
-            color: #888;
             font-size: 14px;
             margin-bottom: 8px;
             font-family: monospace;
         }
         canvas {
-            background: #111;
-            border: 2px solid #444;
+            border: 2px solid;
             image-rendering: pixelated;
             width: 100%;
             max-width: 100%;
             height: auto;
+            transition: border-color 0.3s;
         }
         #message {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #fff;
             font-size: 16px;
-            text-shadow: 0 0 10px #fff;
+            text-shadow: 0 0 10px currentColor;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.3s, color 0.3s;
             text-align: center;
             white-space: pre;
         }
         #message.show { opacity: 1; }
         #controls {
             margin-top: 8px;
-            color: #555;
             font-size: 11px;
             text-align: center;
+            transition: color 0.3s;
         }
+        
+        /* Theme: Default (Grey) */
+        body.default { background: #0a0a0a; }
+        body.default #ui { color: #888; }
+        body.default canvas { background: #111; border-color: #444; }
+        body.default #message { color: #fff; }
+        body.default #controls { color: #555; }
+        
+        /* Theme: Matrix */
+        body.matrix { background: #000; }
+        body.matrix #ui { color: #00aa00; }
+        body.matrix canvas { background: #001100; border-color: #00aa00; }
+        body.matrix #message { color: #00ff00; }
+        body.matrix #controls { color: #006600; }
+        
+        /* Theme: Neon */
+        body.neon { background: #0a0014; }
+        body.neon #ui { color: #ff66b2; }
+        body.neon canvas { background: #150020; border-color: #ff66b2; }
+        body.neon #message { color: #ff66b2; text-shadow: 0 0 20px #ff66b2, 0 0 40px #ff66b2; }
+        body.neon #controls { color: #9933ff; }
+        
+        /* Theme: Paper */
+        body.paper { background: #f5f0e6; }
+        body.paper #ui { color: #444; }
+        body.paper canvas { background: #fffef8; border-color: #ccc; }
+        body.paper #message { color: #222; text-shadow: none; }
+        body.paper #controls { color: #888; }
     </style>
 </head>
-<body>
+<body class="default">
     <div id="container">
         <div id="ui">
             <span id="score">SCORE: 0</span>
@@ -73,7 +99,7 @@
         </div>
         <canvas id="game"></canvas>
         <div id="message">PRESS SPACE TO START</div>
-        <div id="controls">SPACE/UP: Jump  DOWN: Fast Fall  P: Pause  | Version 1.0</div>
+        <div id="controls">SPACE/UP: Jump  DOWN: Fast Fall  P: Pause  T: Theme | Version 1.1</div>
     </div>
     
     <script>
@@ -92,12 +118,24 @@
         canvas.width = W * CELL_W;
         canvas.height = H * CELL_H;
         
+        // Theme definitions
+        const themes = {
+            default: { bg: '#111', bright: '#fff', dim: '#444', ground: '#555', cloud: '#333' },
+            matrix:  { bg: '#001100', bright: '#00ff00', dim: '#004400', ground: '#006600', cloud: '#002200' },
+            neon:    { bg: '#150020', bright: '#ff66b2', dim: '#9933ff', ground: '#cc33ff', cloud: '#220033' },
+            paper:   { bg: '#fffef8', bright: '#222', dim: '#888', ground: '#aaa', cloud: '#ddd' }
+        };
+        const themeNames = ['default', 'matrix', 'neon', 'paper'];
+        let currentTheme = 0;
+        
+        function getTheme() { return themes[themeNames[currentTheme]]; }
+        
         let game = {
             running: false,
             paused: false,
             score: 0,
             hiScore: parseInt(localStorage.getItem('ascii_hi') || '0'),
-            speed: 1,
+            speed: 0.5,
             frame: 0
         };
         
@@ -139,7 +177,7 @@
             }
         }
         
-        function drawChar(x, y, char, color = '#aaa') {
+        function drawChar(x, y, char, color) {
             ctx.fillStyle = color;
             ctx.fillText(char, x * CELL_W, y * CELL_H + CELL_H - 2);
         }
@@ -228,7 +266,8 @@
         function hideMessage() { messageEl.classList.remove('show'); }
         
         function render() {
-            ctx.fillStyle = '#111';
+            const t = getTheme();
+            ctx.fillStyle = t.bg;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             ctx.font = `${CELL_H - 2}px monospace`;
@@ -239,7 +278,7 @@
                 if (c.y >= 0 && c.y < H) {
                     for (let i = 0; i < c.w; i++) {
                         let cx = Math.floor(c.x) + i;
-                        if (cx >= 0 && cx < W) drawChar(cx, c.y, '≈', '#444');
+                        if (cx >= 0 && cx < W) drawChar(cx, c.y, '≈', t.cloud);
                     }
                 }
             });
@@ -248,7 +287,7 @@
             particles.forEach(p => {
                 let px = Math.floor(p.x);
                 let py = Math.floor(p.y);
-                if (px >= 0 && px < W && py >= 0 && py < H) drawChar(px, py, p.char, '#fff');
+                if (px >= 0 && px < W && py >= 0 && py < H) drawChar(px, py, p.char, t.bright);
             });
             
             // Obstacles
@@ -257,7 +296,7 @@
                     let row = obs.type.chars[oy] || '';
                     for (let ox = 0; ox < row.length; ox++) {
                         let rx = Math.floor(obs.x) + ox;
-                        if (rx >= 0 && rx < W) drawChar(rx, obs.y + oy, row[ox], '#fff');
+                        if (rx >= 0 && rx < W) drawChar(rx, obs.y + oy, row[ox], t.bright);
                     }
                 }
             });
@@ -277,7 +316,7 @@
                 for (let sy = 0; sy < 3; sy++) {
                     for (let sx = 0; sx < 5; sx++) {
                         let c = sprite[sy][sx];
-                        if (c !== ' ') drawChar(Math.floor(player.x) + sx, Math.floor(player.y) + sy, c, '#fff');
+                        if (c !== ' ') drawChar(Math.floor(player.x) + sx, Math.floor(player.y) + sy, c, t.bright);
                     }
                 }
             }
@@ -285,8 +324,13 @@
             // Ground
             const groundChars = '═┄┅─';
             for (let x = 0; x < W; x++) {
-                drawChar(x, GROUND, groundChars[Math.floor((x + game.frame * 0.2) % groundChars.length)], '#555');
+                drawChar(x, GROUND, groundChars[Math.floor((x + game.frame * 0.2) % groundChars.length)], t.ground);
             }
+        }
+        
+        function setTheme(index) {
+            currentTheme = index;
+            document.body.className = themeNames[index];
         }
         
         function reset() {
@@ -294,7 +338,7 @@
             obstacles = [];
             particles = [];
             game.score = 0;
-            game.speed = 1;
+            game.speed = 0.5;
             game.frame = 0;
             scoreEl.textContent = 'SCORE: 0';
             hiscoreEl.textContent = `HI: ${game.hiScore}`;
@@ -311,6 +355,7 @@
             }
             if (e.code === 'ArrowDown' && !player.onGround) player.vy += FAST_FALL;
             if (e.code === 'KeyP' && game.running) { game.paused = !game.paused; showMessage(game.paused ? "PAUSED" : ""); }
+            if (e.code === 'KeyT') { currentTheme = (currentTheme + 1) % themeNames.length; setTheme(currentTheme); }
         });
         
         let touchStartY = 0;
@@ -320,6 +365,12 @@
             if (dy > 30 && player.onGround) { player.vy = JUMP; player.onGround = false; }
             else if (dy < -30 && !player.onGround) player.vy += FAST_FALL;
         });
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('runner_theme') || 'default';
+        currentTheme = themeNames.indexOf(savedTheme);
+        if (currentTheme < 0) currentTheme = 0;
+        setTheme(currentTheme);
         
         hiscoreEl.textContent = `HI: ${game.hiScore}`;
         showMessage("PRESS SPACE TO START");
