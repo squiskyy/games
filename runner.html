@@ -3,126 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Games | starky.ink</title>
+    <title>ASCII Runner</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0d0d0d;
-            color: #ccc;
-            font-family: 'Courier New', monospace;
-            min-height: 100vh;
+        html, body {
+            background: #0a0a0a;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: monospace;
+            overflow: hidden;
+        }
+        #container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 40px 20px;
+            padding: 10px;
         }
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            color: #fff;
-            text-shadow: 0 0 20px rgba(255,255,255,0.3);
-        }
-        .subtitle {
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 0.9rem;
-        }
-        .games-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            max-width: 900px;
+        #ui {
             width: 100%;
-        }
-        .game-card {
-            background: #161616;
-            border: 2px solid #333;
-            border-radius: 8px;
-            padding: 25px;
-            text-decoration: none;
-            color: #aaa;
-            transition: all 0.2s;
-        }
-        .game-card:hover {
-            border-color: #666;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        }
-        .game-card h2 {
-            color: #fff;
-            font-size: 1.2rem;
-            margin-bottom: 8px;
-        }
-        .game-card p {
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-        .game-card .arrow {
-            float: right;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .game-card:hover .arrow {
-            opacity: 1;
-        }
-        .coming-soon {
-            background: #1a1a1a;
-            border: 2px dashed #333;
-            border-radius: 8px;
-            padding: 25px;
-            text-align: center;
-            opacity: 0.5;
-        }
-        .coming-soon h2 {
-            color: #555;
-            font-size: 1.2rem;
-        }
-        .footer {
-            margin-top: 60px;
-            color: #444;
-            font-size: 0.75rem;
-        }
-        .footer a {
-            color: #666;
-            text-decoration: none;
-        }
-        .footer a:hover {
+            display: flex;
+            justify-content: space-between;
             color: #888;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-family: monospace;
+        }
+        canvas {
+            background: #111;
+            border: 2px solid #444;
+            image-rendering: pixelated;
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 16px;
+            text-shadow: 0 0 10px #fff;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-align: center;
+            white-space: pre;
+        }
+        #message.show { opacity: 1; }
+        #controls {
+            margin-top: 8px;
+            color: #555;
+            font-size: 11px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <h1>Games</h1>
-    <p class="subtitle">A collection of tiny web games</p>
-    
-    <div class="games-grid">
-        <a href="runner.html" class="game-card">
-            <h2>ASCII Runner <span class="arrow">→</span></h2>
-            <p>A simple side-scrolling runner. Jump over obstacles and see how far you can get. Controls: Space/Up to jump.</p>
-        </a>
-        
-        <a href="theme-1" class="game-card">
-            <h2>Theme: Matrix <span class="arrow">→</span></h2>
-            <p>Classic green-on-black terminal aesthetic. Digital rain and retro vibes.</p>
-        </a>
-        
-        <a href="theme-2" class="game-card">
-            <h2>Theme: Neon <span class="arrow">→</span></h2>
-            <p>Cyberpunk-inspired with bright neon pinks and blues against dark backgrounds.</p>
-        </a>
-        
-        <a href="theme-3" class="game-card">
-            <h2>Theme: Paper <span class="arrow">→</span></h2>
-            <p>Clean white and cream tones. Minimalist, peaceful, typewriter-style.</p>
-        </a>
-        
-        <div class="coming-soon">
-            <h2>More coming soon...</h2>
+    <div id="container">
+        <div id="ui">
+            <span id="score">SCORE: 0</span>
+            <span id="hiscore">HI: 0</span>
         </div>
+        <canvas id="game"></canvas>
+        <div id="message">PRESS SPACE TO START</div>
+        <div id="controls">SPACE/UP: Jump  DOWN: Fast Fall  P: Pause  | Version 1.0</div>
     </div>
     
-    <p class="footer">
-        <a href="https://starky.ink">← starky.ink</a>
-    </p>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const hiscoreEl = document.getElementById('hiscore');
+        const messageEl = document.getElementById('message');
+        
+        const CELL_W = 12;
+        const CELL_H = 20;
+        const W = 50;
+        const H = 18;
+        const GROUND = H - 3;
+        
+        canvas.width = W * CELL_W;
+        canvas.height = H * CELL_H;
+        
+        let game = {
+            running: false,
+            paused: false,
+            score: 0,
+            hiScore: parseInt(localStorage.getItem('ascii_hi') || '0'),
+            speed: 1,
+            frame: 0
+        };
+        
+        let player = { x: 8, y: GROUND - 2, vy: 0, onGround: true, frame: 0, dead: false };
+        let obstacles = [];
+        let particles = [];
+        let clouds = [];
+        
+        for (let i = 0; i < 3; i++) {
+            clouds.push({ x: Math.random() * W, y: Math.floor(Math.random() * (H / 2)), w: 4 + Math.floor(Math.random() * 3), s: 0.02 + Math.random() * 0.02 });
+        }
+        
+        const GRAVITY = 0.3;
+        const JUMP = -6;
+        const FAST_FALL = 2;
+        
+        const obstacleTypes = [
+            { h: 2, chars: ["▓▓▓", "▓▓▓"] },
+            { h: 2, chars: ["▲▲▲", "▲▲▲"] },
+            { h: 1, chars: ["▒▒▒▒"] },
+            { h: 3, chars: [" █ ", "███", "███"] }
+        ];
+        
+        function spawnObstacle() {
+            const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+            obstacles.push({ x: W, y: GROUND - type.h, type: type, passed: false });
+        }
+        
+        function spawnParticles(x, y, count, char) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x + (Math.random() - 0.5) * 1.5,
+                    y: y + (Math.random() - 0.5),
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: (Math.random() - 0.5) * 1.5 - 0.8,
+                    life: 12 + Math.random() * 8,
+                    char: char || '*'
+                });
+            }
+        }
+        
+        function drawChar(x, y, char, color = '#aaa') {
+            ctx.fillStyle = color;
+            ctx.fillText(char, x * CELL_W, y * CELL_H + CELL_H - 2);
+        }
+        
+        function update() {
+            if (!game.running || game.paused) {
+                render();
+                requestAnimationFrame(update);
+                return;
+            }
+            
+            game.frame++;
+            game.speed = 0.5 + Math.floor(game.score / 500) * 0.1;
+            
+            player.vy += GRAVITY;
+            player.y += player.vy;
+            
+            if (player.y >= GROUND - 2) {
+                player.y = GROUND - 2;
+                player.vy = 0;
+                player.onGround = true;
+            } else {
+                player.onGround = false;
+            }
+            
+            player.frame++;
+            
+            const spawnRate = Math.max(35, 70 - Math.floor(game.score / 100) * 4);
+            if (game.frame % Math.floor(spawnRate / game.speed) === 0) spawnObstacle();
+            
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= game.speed;
+                
+                if (!obs.passed && obs.x + 3 < player.x) {
+                    obs.passed = true;
+                    game.score += 100;
+                    scoreEl.textContent = `SCORE: ${game.score}`;
+                }
+                
+                if (obs.x < -5) obstacles.splice(i, 1);
+                
+                if (player.x + 2 > obs.x && player.x < obs.x + 3 && player.y + 2 > obs.y) {
+                    die();
+                }
+            }
+            
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.12;
+                p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+            
+            clouds.forEach(c => {
+                c.x -= c.s;
+                if (c.x + c.w < 0) c.x = W;
+            });
+            
+            render();
+            requestAnimationFrame(update);
+        }
+        
+        function die() {
+            spawnParticles(player.x + 1, player.y + 1, 12, '*');
+            player.dead = true;
+            game.running = false;
+            
+            if (game.score > game.hiScore) {
+                game.hiScore = game.score;
+                localStorage.setItem('ascii_hi', game.hiScore);
+                hiscoreEl.textContent = `HI: ${game.hiScore}`;
+                showMessage("NEW HIGH SCORE!");
+            } else {
+                showMessage("GAME OVER\n\nSPACE TO RESTART");
+            }
+        }
+        
+        function showMessage(text) {
+            messageEl.textContent = text;
+            messageEl.classList.add('show');
+        }
+        
+        function hideMessage() { messageEl.classList.remove('show'); }
+        
+        function render() {
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.font = `${CELL_H - 2}px monospace`;
+            ctx.textBaseline = 'bottom';
+            
+            // Clouds
+            clouds.forEach(c => {
+                if (c.y >= 0 && c.y < H) {
+                    for (let i = 0; i < c.w; i++) {
+                        let cx = Math.floor(c.x) + i;
+                        if (cx >= 0 && cx < W) drawChar(cx, c.y, '≈', '#444');
+                    }
+                }
+            });
+            
+            // Particles
+            particles.forEach(p => {
+                let px = Math.floor(p.x);
+                let py = Math.floor(p.y);
+                if (px >= 0 && px < W && py >= 0 && py < H) drawChar(px, py, p.char, '#fff');
+            });
+            
+            // Obstacles
+            obstacles.forEach(obs => {
+                for (let oy = 0; oy < obs.type.h; oy++) {
+                    let row = obs.type.chars[oy] || '';
+                    for (let ox = 0; ox < row.length; ox++) {
+                        let rx = Math.floor(obs.x) + ox;
+                        if (rx >= 0 && rx < W) drawChar(rx, obs.y + oy, row[ox], '#fff');
+                    }
+                }
+            });
+            
+            // Player
+            if (!player.dead) {
+                const sprites = {
+                    idle: ["  O  ", " /|\\ ", " / \\ "],
+                    run:  ["  O  ", "  |  ", " / \\ "],
+                    jump:["  O  ", " /|\\ ", "   \\ "]
+                };
+                
+                let sprite = sprites.idle;
+                if (!player.onGround) sprite = sprites.jump;
+                else if (Math.floor(player.frame / 6) % 2 === 0) sprite = sprites.run;
+                
+                for (let sy = 0; sy < 3; sy++) {
+                    for (let sx = 0; sx < 5; sx++) {
+                        let c = sprite[sy][sx];
+                        if (c !== ' ') drawChar(Math.floor(player.x) + sx, Math.floor(player.y) + sy, c, '#fff');
+                    }
+                }
+            }
+            
+            // Ground
+            const groundChars = '═┄┅─';
+            for (let x = 0; x < W; x++) {
+                drawChar(x, GROUND, groundChars[Math.floor((x + game.frame * 0.2) % groundChars.length)], '#555');
+            }
+        }
+        
+        function reset() {
+            player = { x: 8, y: GROUND - 2, vy: 0, onGround: true, frame: 0, dead: false };
+            obstacles = [];
+            particles = [];
+            game.score = 0;
+            game.speed = 1;
+            game.frame = 0;
+            scoreEl.textContent = 'SCORE: 0';
+            hiscoreEl.textContent = `HI: ${game.hiScore}`;
+            hideMessage();
+        }
+        
+        function start() { reset(); game.running = true; game.paused = false; }
+        
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                if (!game.running) start();
+                else if (player.onGround) { player.vy = JUMP; player.onGround = false; spawnParticles(player.x, player.y + 2, 3, '.'); }
+            }
+            if (e.code === 'ArrowDown' && !player.onGround) player.vy += FAST_FALL;
+            if (e.code === 'KeyP' && game.running) { game.paused = !game.paused; showMessage(game.paused ? "PAUSED" : ""); }
+        });
+        
+        let touchStartY = 0;
+        document.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; if (!game.running) start(); });
+        document.addEventListener('touchend', e => {
+            const dy = touchStartY - e.changedTouches[0].clientY;
+            if (dy > 30 && player.onGround) { player.vy = JUMP; player.onGround = false; }
+            else if (dy < -30 && !player.onGround) player.vy += FAST_FALL;
+        });
+        
+        hiscoreEl.textContent = `HI: ${game.hiScore}`;
+        showMessage("PRESS SPACE TO START");
+        update();
+    </script>
 </body>
 </html>
