@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200">
+  <rect width="400" height="200" fill="#111"/>
+  <rect x="10" y="10" width="380" height="180" fill="none" stroke="#444" stroke-width="3" rx="10"/>
+  
+  <!-- ASCII Runner -->
+  <text x="200" y="50" font-family="monospace" font-size="24" fill="#fff" text-anchor="middle" font-weight="bold">ASCII RUNNER</text>
+  
+  <!-- Player running -->
+  <text x="120" y="110" font-family="monospace" font-size="20" fill="#fff">
+    <tspan>  O  </tspan>
+    <tspan>  |  </tspan>
+    <tspan> / \ </tspan>
+  </text>
+  
+  <!-- Arrow -->
+  <text x="200" y="115" font-family="monospace" font-size="20" fill="#666">→ → →</text>
+  
+  <!-- Obstacle -->
+  <text x="280" y="110" font-family="monospace" font-size="20" fill="#ff66b2">
+    <tspan>▓▓▓</tspan>
+    <tspan>▓▓▓</tspan>
+  </text>
+  
+  <!-- Ground -->
+  <text x="200" y="145" font-family="monospace" font-size="14" fill="#555" text-anchor="middle">═┄┅═┄┅═┄┅═┄┅═┄┅═┄┅═┄┅═┄┅═</text>
+  
+  <!-- Score -->
+  <text x="200" y="170" font-family="monospace" font-size="12" fill="#888" text-anchor="middle">PRESS SPACE TO START</text>
+  
+  <!-- Version -->
+  <text x="380" y="190" font-family="monospace" font-size="10" fill="#444" text-anchor="end">v1.1</text>
+</svg>
